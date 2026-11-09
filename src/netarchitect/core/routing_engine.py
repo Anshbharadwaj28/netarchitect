@@ -1,5 +1,5 @@
 from typing import List
-from core.models import SubnetAllocation, RoutingPolicyRecommendation
+from .models import SubnetAllocation, RoutingPolicyRecommendation
 
 
 class RoutingEngine:

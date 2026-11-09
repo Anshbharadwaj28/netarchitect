@@ -1,7 +1,7 @@
 import unittest
-from core.models import SubnetRequest
-from core.vlsm_engine import VLSMEngine
-from core.exceptions import SubnetExhaustionError
+from netarchitect.core.models import SubnetRequest
+from netarchitect.core.vlsm_engine import VLSMEngine
+from netarchitect.core.exceptions import SubnetExhaustionError
 
 
 class TestVLSMEngine(unittest.TestCase):

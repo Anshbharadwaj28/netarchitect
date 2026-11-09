@@ -1,7 +1,7 @@
 import math
 from typing import List, Tuple
-from core.exceptions import SubnetExhaustionError
-from core.models import SubnetRequest, SubnetAllocation
+from .exceptions import SubnetExhaustionError
+from .models import SubnetRequest, SubnetAllocation
 
 
 class VLSMEngine:

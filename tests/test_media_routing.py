@@ -1,8 +1,8 @@
 import unittest
-from core.models import PhysicalLinkRequest, SubnetAllocation
-from core.media_engine import MediaEngine
-from core.routing_engine import RoutingEngine
-from core.exceptions import PhysicalDistanceViolationError
+from netarchitect.core.models import PhysicalLinkRequest, SubnetAllocation
+from netarchitect.core.media_engine import MediaEngine
+from netarchitect.core.routing_engine import RoutingEngine
+from netarchitect.core.exceptions import PhysicalDistanceViolationError
 
 
 class TestMediaAndRouting(unittest.TestCase):
