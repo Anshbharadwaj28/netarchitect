@@ -1,5 +1,5 @@
-from core.exceptions import PhysicalDistanceViolationError
-from core.models import PhysicalLinkRequest, PhysicalLinkRecommendation
+from .exceptions import PhysicalDistanceViolationError
+from .models import PhysicalLinkRequest, PhysicalLinkRecommendation
 
 
 class MediaEngine:
