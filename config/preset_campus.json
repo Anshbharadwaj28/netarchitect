@@ -1,0 +1,37 @@
+{
+  "project_name": "CIC-307 Campus LAN Architecture",
+  "profile_type": "Campus LAN",
+  "root_cidr": "10.100.0.0/16",
+  "autonomous_system": 65001,
+  "is_multi_site": false,
+  "subnets": [
+    {"name": "Students_WLAN", "hosts_needed": 900, "vlan_id": 10, "traffic_class": "bulk"},
+    {"name": "Faculty_Staff", "hosts_needed": 350, "vlan_id": 20, "traffic_class": "standard"},
+    {"name": "Smart_Classrooms_IoT", "hosts_needed": 200, "vlan_id": 30, "traffic_class": "standard"},
+    {"name": "VoIP_Telephony", "hosts_needed": 120, "vlan_id": 40, "traffic_class": "voice"},
+    {"name": "Security_CCTV", "hosts_needed": 30, "vlan_id": 50, "traffic_class": "video"}
+  ],
+  "links": [
+    {
+      "source": "Core-Switch-01",
+      "destination": "Science-Hall-Dist-01",
+      "distance_meters": 280,
+      "required_bandwidth_gbps": 10.0,
+      "medium_override": null
+    },
+    {
+      "source": "Core-Switch-01",
+      "destination": "Admin-Bldg-Dist-01",
+      "distance_meters": 85,
+      "required_bandwidth_gbps": 10.0,
+      "medium_override": null
+    },
+    {
+      "source": "Science-Hall-Dist-01",
+      "destination": "Science-Hall-Access-01",
+      "distance_meters": 45,
+      "required_bandwidth_gbps": 1.0,
+      "medium_override": null
+    }
+  ]
+}

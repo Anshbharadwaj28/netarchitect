@@ -1,0 +1,26 @@
+# Byte-compiled and execution artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest & testing caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environment directories
+.venv/
+venv/
+ENV/
+env/
+
+# Editor and IDE metadata
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Operating system metadata files
+.DS_Store
+Thumbs.db
