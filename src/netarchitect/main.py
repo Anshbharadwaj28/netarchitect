@@ -15,7 +15,6 @@ from netarchitect.core.exceptions import NetArchitectException
 from netarchitect.generators.cisco_ios import CiscoIOSGenerator
 from netarchitect.generators.report_engine import ReportEngine
 from netarchitect.core.acl_engine import generate_acl_config
-from netarchitect.core.acl_engine import generate_acl_config
 
 PRESET_FILES = {
     "campus": "preset_campus.json",

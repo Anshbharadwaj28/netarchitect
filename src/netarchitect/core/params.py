@@ -94,31 +94,6 @@ def validate_config(data: Any) -> dict:
         port = policy.get("destination_port")
         if port is not None and (policy.get("protocol", "ip") not in {"tcp", "udp"} or isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535):
             raise ConfigurationError(f"acl_policies[{i}].destination_port requires tcp/udp and must be 1..65535.")
-    acl_policies = data.get("acl_policies", [])
-    if not isinstance(acl_policies, list):
-        raise ConfigurationError("acl_policies must be an array.")
-    known_vlans = {subnet["vlan_id"] for subnet in data["subnets"]}
-    policy_names = set()
-    for i, policy in enumerate(acl_policies):
-        if not isinstance(policy, dict) or not {"name", "source_vlan", "destination_vlan"}.issubset(policy):
-            raise ConfigurationError(f"acl_policies[{i}] requires name, source_vlan, and destination_vlan.")
-        name = policy["name"]
-        if not isinstance(name, str) or not name.strip() or name.upper() in policy_names:
-            raise ConfigurationError(f"acl_policies[{i}].name must be non-empty and unique.")
-        policy_names.add(name.upper())
-        for field in ("source_vlan", "destination_vlan"):
-            vlan = policy[field]
-            if not isinstance(vlan, int) or isinstance(vlan, bool) or vlan not in known_vlans:
-                raise ConfigurationError(f"acl_policies[{i}].{field} must reference a configured VLAN.")
-        if policy["source_vlan"] == policy["destination_vlan"]:
-            raise ConfigurationError(f"acl_policies[{i}] source and destination VLANs must differ.")
-        if policy.get("action", "deny") not in {"permit", "deny"}:
-            raise ConfigurationError(f"acl_policies[{i}].action must be permit or deny.")
-        if policy.get("protocol", "ip") not in {"ip", "tcp", "udp", "icmp"}:
-            raise ConfigurationError(f"acl_policies[{i}].protocol must be ip, tcp, udp, or icmp.")
-        port = policy.get("destination_port")
-        if port is not None and (policy.get("protocol", "ip") not in {"tcp", "udp"} or isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65535):
-            raise ConfigurationError(f"acl_policies[{i}].destination_port requires tcp/udp and must be 1..65535.")
     return data
 
 

@@ -9,7 +9,7 @@
 ## 1. Topology Recommendation
 
 - **Recommended topology:** Hierarchical Multi-Site WAN
-- **Rationale:** 2 geographically distinct sites require routed site boundaries and a hierarchical WAN design.
+- **Rationale:** 3 geographically distinct sites require routed site boundaries and a hierarchical WAN design. Dual-homing is recommended for redundant uplinks and improved path availability.
 
 ---
 
