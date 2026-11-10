@@ -1,0 +1,60 @@
+
+{
+  "project_name": "Custom Enterprise Network",
+  "profile_type": "Custom Test",
+  "root_cidr": "192.168.0.0/16",
+  "autonomous_system": 65010,
+  "is_multi_site": false,
+
+  "subnets": [
+    {
+      "name": "Engineering",
+      "hosts_needed": 500,
+      "vlan_id": 10,
+      "traffic_class": "standard"
+    },
+    {
+      "name": "HR",
+      "hosts_needed": 100,
+      "vlan_id": 20,
+      "traffic_class": "standard"
+    },
+    {
+      "name": "IoT",
+      "hosts_needed": 50,
+      "vlan_id": 30,
+      "traffic_class": "bulk"
+    },
+    {
+      "name": "Voice",
+      "hosts_needed": 25,
+      "vlan_id": 40,
+      "traffic_class": "voice"
+    }
+  ],
+
+  "links": [
+    {
+      "source": "Core-Switch",
+      "destination": "Engineering-Block",
+      "distance_meters": 80,
+      "required_bandwidth_gbps": 10,
+      "medium_override": null
+    },
+    {
+      "source": "Core-Switch",
+      "destination": "HR-Block",
+      "distance_meters": 250,
+      "required_bandwidth_gbps": 10,
+      "medium_override": null
+    },
+    {
+      "source": "HQ",
+      "destination": "Remote-Office",
+      "distance_meters": 15000,
+      "required_bandwidth_gbps": 10,
+      "medium_override": null
+    }
+  ]
+}
+
