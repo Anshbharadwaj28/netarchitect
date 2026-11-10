@@ -6,7 +6,14 @@
 
 ---
 
-## 1. Bitwise VLSM Subnet Hierarchy
+## 1. Topology Recommendation
+
+- **Recommended topology:** Three-Tier Hierarchical Campus
+- **Rationale:** A larger single-site network benefits from separate core, distribution, and access layers for scale and fault isolation.
+
+---
+
+## 2. Bitwise VLSM Subnet Hierarchy
 
 Subnets allocated dynamically in strict descending order of host requirements to maximize contiguous block efficiency and prevent overlapping boundary fragmentation.
 
@@ -20,32 +27,32 @@ Subnets allocated dynamically in strict descending order of host requirements to
 
 ---
 
-## 2. Physical Layer Media & Optical Distance Physics
+## 3. Physical Layer Media & Optical Distance Physics
 
 ### Link 1: Core-Switch-01 -> Science-Hall-Dist-01
 - **Calculated Distance:** `280.0 meters`
 - **Recommended Media:** **OM4 Multi-Mode Fiber (MMF 50/125µm)**
 - **Transceiver Module:** `SFP-10G-SR` (850 nm)
-- **Standard Standard:** `IEEE 802.3ae (10GBASE-SR)`
+- **Standard:** `IEEE 802.3ae (10GBASE-SR)`
 - **Engineering Rationale:** Link distance of 280.0m exceeds the 100m copper limit but sits safely within the 400m operating range of OM4 laser-optimized MMF. OM4 provides an effective modal bandwidth of 4700 MHz·km at 850nm VCSEL transmission, avoiding chromatic dispersion while lowering optics cost.
 
 ### Link 2: Core-Switch-01 -> Admin-Bldg-Dist-01
 - **Calculated Distance:** `85.0 meters`
 - **Recommended Media:** **Cat6a U/FTP or F/UTP**
 - **Transceiver Module:** `RJ-45 Native / SFP-10G-T-S` (N/A (Copper))
-- **Standard Standard:** `IEEE 802.3an (10GBASE-T)`
+- **Standard:** `IEEE 802.3an (10GBASE-T)`
 - **Engineering Rationale:** Link distance of 85.0m is within the 100-meter electrical channel limit specified by IEEE 802.3an. 10GBASE-T over Cat6a delivers 10 Gbps throughput at 500 MHz bandwidth with superior power efficiency and eliminates costly optical transceivers for intra-building runs.
 
 ### Link 3: Science-Hall-Dist-01 -> Science-Hall-Access-01
 - **Calculated Distance:** `45.0 meters`
 - **Recommended Media:** **Cat6a U/FTP or F/UTP**
 - **Transceiver Module:** `RJ-45 Native / SFP-10G-T-S` (N/A (Copper))
-- **Standard Standard:** `IEEE 802.3an (10GBASE-T)`
+- **Standard:** `IEEE 802.3an (10GBASE-T)`
 - **Engineering Rationale:** Link distance of 45.0m is within the 100-meter electrical channel limit specified by IEEE 802.3an. 10GBASE-T over Cat6a delivers 10 Gbps throughput at 500 MHz bandwidth with superior power efficiency and eliminates costly optical transceivers for intra-building runs.
 
 ---
 
-## 3. L3 Dynamic Routing & Policy Architecture
+## 4. L3 Dynamic Routing & Policy Architecture
 
 - **Primary Routing Protocol:** Single-Area OSPFv2 (RFC 2328)
 - **Backbone Topology Tier:** Collapsed Core / Campus Enterprise Backbone

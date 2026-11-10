@@ -55,3 +55,14 @@ class TestMediaAndRouting(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_negative_or_nan_distance_is_rejected(self):
+        import math
+        for distance in (-1, math.nan, math.inf):
+            with self.subTest(distance=distance):
+                with self.assertRaises(ValueError):
+                    MediaEngine.evaluate_link(PhysicalLinkRequest("A", "B", distance))
+
+    def test_distance_beyond_40km_optic_budget_is_rejected(self):
+        with self.assertRaises(ValueError):
+            MediaEngine.evaluate_link(PhysicalLinkRequest("A", "B", 40001))

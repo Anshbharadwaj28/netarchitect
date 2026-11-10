@@ -5,11 +5,36 @@
   "autonomous_system": 65001,
   "is_multi_site": false,
   "subnets": [
-    {"name": "Students_WLAN", "hosts_needed": 900, "vlan_id": 10, "traffic_class": "bulk"},
-    {"name": "Faculty_Staff", "hosts_needed": 350, "vlan_id": 20, "traffic_class": "standard"},
-    {"name": "Smart_Classrooms_IoT", "hosts_needed": 200, "vlan_id": 30, "traffic_class": "standard"},
-    {"name": "VoIP_Telephony", "hosts_needed": 120, "vlan_id": 40, "traffic_class": "voice"},
-    {"name": "Security_CCTV", "hosts_needed": 30, "vlan_id": 50, "traffic_class": "video"}
+    {
+      "name": "Students_WLAN",
+      "hosts_needed": 900,
+      "vlan_id": 10,
+      "traffic_class": "bulk"
+    },
+    {
+      "name": "Faculty_Staff",
+      "hosts_needed": 350,
+      "vlan_id": 20,
+      "traffic_class": "standard"
+    },
+    {
+      "name": "Smart_Classrooms_IoT",
+      "hosts_needed": 200,
+      "vlan_id": 30,
+      "traffic_class": "standard"
+    },
+    {
+      "name": "VoIP_Telephony",
+      "hosts_needed": 120,
+      "vlan_id": 40,
+      "traffic_class": "voice"
+    },
+    {
+      "name": "Security_CCTV",
+      "hosts_needed": 30,
+      "vlan_id": 50,
+      "traffic_class": "video"
+    }
   ],
   "links": [
     {
@@ -33,5 +58,8 @@
       "required_bandwidth_gbps": 1.0,
       "medium_override": null
     }
-  ]
+  ],
+  "endpoints": 1600,
+  "site_count": 1,
+  "dual_homed": false
 }

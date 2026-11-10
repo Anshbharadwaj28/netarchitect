@@ -1,5 +1,8 @@
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .topology_engine import TopologyRecommendation
 
 
 @dataclass(frozen=True)
@@ -65,3 +68,4 @@ class NetworkArchitecturePlan:
     allocations: List[SubnetAllocation]
     media_recommendations: List[PhysicalLinkRecommendation]
     routing_policy: RoutingPolicyRecommendation
+    topology_recommendation: Optional["TopologyRecommendation"] = None

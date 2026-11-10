@@ -5,10 +5,30 @@
   "autonomous_system": 65100,
   "is_multi_site": true,
   "subnets": [
-    {"name": "Algorithmic_Trading_Colo", "hosts_needed": 180, "vlan_id": 100, "traffic_class": "voice"},
-    {"name": "HQ_Operations", "hosts_needed": 140, "vlan_id": 200, "traffic_class": "standard"},
-    {"name": "Disaster_Recovery_Site", "hosts_needed": 80, "vlan_id": 300, "traffic_class": "standard"},
-    {"name": "Out_Of_Band_Mgmt", "hosts_needed": 50, "vlan_id": 999, "traffic_class": "bulk"}
+    {
+      "name": "Algorithmic_Trading_Colo",
+      "hosts_needed": 180,
+      "vlan_id": 100,
+      "traffic_class": "voice"
+    },
+    {
+      "name": "HQ_Operations",
+      "hosts_needed": 140,
+      "vlan_id": 200,
+      "traffic_class": "standard"
+    },
+    {
+      "name": "Disaster_Recovery_Site",
+      "hosts_needed": 80,
+      "vlan_id": 300,
+      "traffic_class": "standard"
+    },
+    {
+      "name": "Out_Of_Band_Mgmt",
+      "hosts_needed": 50,
+      "vlan_id": 999,
+      "traffic_class": "bulk"
+    }
   ],
   "links": [
     {
@@ -32,5 +52,8 @@
       "required_bandwidth_gbps": 10.0,
       "medium_override": null
     }
-  ]
+  ],
+  "endpoints": 450,
+  "site_count": 3,
+  "dual_homed": true
 }

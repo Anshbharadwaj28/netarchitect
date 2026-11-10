@@ -1,66 +1,27 @@
-# Byte-compiled / optimized / AST files
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Python cache
 __pycache__/
 *.py[cod]
-*$py.class
+*.pyo
 
-# C extensions
-*.so
-
-# Distribution / packaging artifacts
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual environments
-venv/
-.venv/
-ENV/
-env/
-env.bak/
-venv.bak/
-
-# Unit test & coverage reporting
+# Testing
 .pytest_cache/
 .coverage
-.coverage.*
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
 htmlcov/
-.hypothesis/
-.tox/
 
-# IDE & Code Editor files
+# IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
-.project
-.pydevproject
-.settings/
 
-# Operating System metadata files
+# OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
+
+# Build artifacts
+build/
+dist/
+*.egg-info/

@@ -1,12 +1,22 @@
 from .exceptions import PhysicalDistanceViolationError
 from .models import PhysicalLinkRequest, PhysicalLinkRecommendation
+import math
 
 
 class MediaEngine:
     @staticmethod
     def evaluate_link(link: PhysicalLinkRequest) -> PhysicalLinkRecommendation:
         dist = link.distance_meters
-        override = link.medium_override.upper() if link.medium_override else None
+        if isinstance(dist, bool) or not isinstance(dist, (int, float)) or not math.isfinite(dist) or dist < 0:
+            raise ValueError("Link distance must be a finite, non-negative number.")
+        if link.required_bandwidth_gbps <= 0 or not math.isfinite(link.required_bandwidth_gbps):
+            raise ValueError("Required bandwidth must be a positive finite number.")
+        if link.medium_override is not None and not isinstance(link.medium_override, str):
+            raise ValueError("medium_override must be a string or null.")
+        override = link.medium_override.strip().upper() if link.medium_override else None
+        supported_overrides = {"CAT6", "CAT6A", "COPPER", "10GBASE-T", "OM4", "MMF", "OS2", "SMF"}
+        if override and override not in supported_overrides:
+            raise ValueError(f"Unsupported medium override {link.medium_override!r}.")
 
         if override in ["CAT6", "CAT6A", "COPPER", "10GBASE-T"]:
             if dist > 100.0:
@@ -16,7 +26,10 @@ class MediaEngine:
                     f"insertion loss, high-frequency attenuation, and near-end crosstalk (NEXT)."
                 )
 
-        if dist <= 100.0:
+        if override in {"OM4", "MMF"} and dist > 400.0:
+            raise PhysicalDistanceViolationError("OM4 multimode fiber is limited to 400m for the 10GBASE-SR assumption used by this planner.")
+
+        if dist <= 100.0 and override not in {"OS2", "SMF", "OM4", "MMF"}:
             return PhysicalLinkRecommendation(
                 source=link.source,
                 destination=link.destination,
@@ -31,7 +44,7 @@ class MediaEngine:
                     "with superior power efficiency and eliminates costly optical transceivers for intra-building runs."
                 )
             )
-        elif 100.0 < dist <= 400.0:
+        elif (100.0 < dist <= 400.0) or override in {"OM4", "MMF"}:
             return PhysicalLinkRecommendation(
                 source=link.source,
                 destination=link.destination,
@@ -47,6 +60,19 @@ class MediaEngine:
                 )
             )
         else:
+            if dist > 40000.0:
+                return PhysicalLinkRecommendation(
+                    source=link.source, destination=link.destination, distance_meters=dist,
+                    recommended_media="Carrier-managed OS2 long-haul transport (DWDM/OTN; subsea where applicable)",
+                    standard="ITU-T G.709 / G.694.1 (transport and DWDM interfaces)",
+                    transceiver_type="Carrier handoff optics; engineered to provider optical budget",
+                    wavelength_nm=None,
+                    engineering_justification=(
+                        f"The {dist / 1000:.1f} km span exceeds ordinary 10GBASE-LR/ER point-to-point reach. "
+                        "A carrier-managed optical transport system with engineered amplification, dispersion "
+                        "management, protection, and demarcation is required; a single 10GBASE-ER optic is not suitable."
+                    )
+                )
             transceiver = "SFP-10G-LR (1310nm, up to 10km)" if dist <= 10000.0 else "SFP-10G-ER (1550nm, up to 40km)"
             wavelength = 1310 if dist <= 10000.0 else 1550
             return PhysicalLinkRecommendation(

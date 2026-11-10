@@ -5,12 +5,42 @@
   "autonomous_system": 64512,
   "is_multi_site": true,
   "subnets": [
-    {"name": "Warehouse_Automated_IoT", "hosts_needed": 2000, "vlan_id": 101, "traffic_class": "bulk"},
-    {"name": "Global_Edge_Scanners", "hosts_needed": 1000, "vlan_id": 102, "traffic_class": "bulk"},
-    {"name": "Chicago_Branch_Office", "hosts_needed": 500, "vlan_id": 201, "traffic_class": "standard"},
-    {"name": "Frankfurt_Hub_Office", "hosts_needed": 250, "vlan_id": 301, "traffic_class": "standard"},
-    {"name": "AWS_DirectConnect_VPC", "hosts_needed": 120, "vlan_id": 401, "traffic_class": "voice"},
-    {"name": "Azure_ExpressRoute_Landing", "hosts_needed": 60, "vlan_id": 501, "traffic_class": "standard"}
+    {
+      "name": "Warehouse_Automated_IoT",
+      "hosts_needed": 2000,
+      "vlan_id": 101,
+      "traffic_class": "bulk"
+    },
+    {
+      "name": "Global_Edge_Scanners",
+      "hosts_needed": 1000,
+      "vlan_id": 102,
+      "traffic_class": "bulk"
+    },
+    {
+      "name": "Chicago_Branch_Office",
+      "hosts_needed": 500,
+      "vlan_id": 201,
+      "traffic_class": "standard"
+    },
+    {
+      "name": "Frankfurt_Hub_Office",
+      "hosts_needed": 250,
+      "vlan_id": 301,
+      "traffic_class": "standard"
+    },
+    {
+      "name": "AWS_DirectConnect_VPC",
+      "hosts_needed": 120,
+      "vlan_id": 401,
+      "traffic_class": "voice"
+    },
+    {
+      "name": "Azure_ExpressRoute_Landing",
+      "hosts_needed": 60,
+      "vlan_id": 501,
+      "traffic_class": "standard"
+    }
   ],
   "links": [
     {
@@ -41,5 +71,8 @@
       "required_bandwidth_gbps": 10.0,
       "medium_override": null
     }
-  ]
+  ],
+  "endpoints": 2000,
+  "site_count": 4,
+  "dual_homed": true
 }

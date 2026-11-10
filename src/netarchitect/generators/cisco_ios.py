@@ -30,11 +30,9 @@ class CiscoIOSGenerator:
         lines.extend([
             "interface GigabitEthernet0/1",
             " description UPLINK-TO-DISTRIBUTION-CORE",
-            " switchport trunk encapsulation dot1q",
             " switchport mode trunk",
             f" switchport trunk allowed vlan {allowed_vlans}",
             " switchport nonegotiate",
-            " spanning-tree guard root",
             " no shutdown",
             "!"
         ])
@@ -58,10 +56,10 @@ class CiscoIOSGenerator:
     def generate_l3_core(plan: NetworkArchitecturePlan) -> str:
         lines = [
             "!",
-            f"! NetArchitect L3 Core / Distribution Router Configuration: {plan.project_name}",
+            f"! NetArchitect L3 Core / Distribution Switch Configuration: {plan.project_name}",
             f"! Routing Protocol: {plan.routing_policy.protocol}",
             "!",
-            "hostname CORE-ROUTER-01",
+            "hostname CORE-SW1",
             "ip routing",
             "spanning-tree mode rapid-pvst",
             "!"
@@ -95,16 +93,8 @@ class CiscoIOSGenerator:
                 "!"
             ])
 
-        # Access Control Lists for Enterprise Hardening
-        lines.extend([
-            "ip access-list extended ACL-ISOLATE-MGMT",
-            " permit udp any any eq bootps",
-            " permit udp any any eq domain",
-            " permit icmp any any",
-            " deny ip 10.0.0.0 0.255.255.255 192.168.0.0 0.0.255.255",
-            " permit ip any any",
-            "!"
-        ])
+        # ACL policy is intentionally not synthesized without explicit security
+        # requirements; hard-coded address ranges would create misleading protection.
 
         # Routing Engine Statements
         ospf_pid = 1
@@ -116,23 +106,14 @@ class CiscoIOSGenerator:
 
         for sub in plan.allocations:
             area_id = "0"
-            lines.append(f" no passive-interface Vlan{sub.vlan_id}")
             lines.append(f" network {sub.network_address} {sub.wildcard_mask} area {area_id}")
 
         if plan.routing_policy.border_protocol:
             lines.extend([
                 "!",
-                f"router bgp {plan.autonomous_system}",
-                " bgp router-id 1.1.1.1",
-                " bgp log-neighbor-changes",
-                " neighbor 169.254.0.1 remote-as 64512",
-                " neighbor 169.254.0.1 description CLOUD-DIRECT-CONNECT-EDGE",
-                " neighbor 169.254.0.1 update-source Loopback0",
-                " !",
-                " address-family ipv4",
-                f"  network {plan.allocations[0].network_address} mask {plan.allocations[0].subnet_mask}",
-                "  neighbor 169.254.0.1 activate",
-                " exit-address-family"
+                "! Routing recommendation includes eBGP at the WAN edge.",
+                "! Peer IP, remote AS, authentication, and advertised prefixes",
+                "! were not supplied, so no non-functional placeholder BGP neighbor is generated.",
             ])
 
         lines.append("end\n")

@@ -6,7 +6,14 @@
 
 ---
 
-## 1. Bitwise VLSM Subnet Hierarchy
+## 1. Topology Recommendation
+
+- **Recommended topology:** Hierarchical Multi-Site WAN
+- **Rationale:** 2 geographically distinct sites require routed site boundaries and a hierarchical WAN design.
+
+---
+
+## 2. Bitwise VLSM Subnet Hierarchy
 
 Subnets allocated dynamically in strict descending order of host requirements to maximize contiguous block efficiency and prevent overlapping boundary fragmentation.
 
@@ -21,39 +28,39 @@ Subnets allocated dynamically in strict descending order of host requirements to
 
 ---
 
-## 2. Physical Layer Media & Optical Distance Physics
+## 3. Physical Layer Media & Optical Distance Physics
 
 ### Link 1: Chicago-WAN-Edge -> Frankfurt-WAN-Edge
 - **Calculated Distance:** `6920000.0 meters`
-- **Recommended Media:** **OS2 Single-Mode Fiber (SMF 9/125µm)**
-- **Transceiver Module:** `SFP-10G-ER (1550nm, up to 40km)` (1550 nm)
-- **Standard Standard:** `IEEE 802.3ae (10GBASE-LR/ER)`
-- **Engineering Rationale:** Link distance of 6920000.0m exceeds the 400m dispersion envelope of multimode fiber. OS2 single-mode fiber with a 9µm core eliminates intermodal dispersion entirely, providing an optical attenuation budget <= 0.4 dB/km at 1550nm for metropolitan/WAN spans.
+- **Recommended Media:** **Carrier-managed OS2 long-haul transport (DWDM/OTN; subsea where applicable)**
+- **Transceiver Module:** `Carrier handoff optics; engineered to provider optical budget` (Provider-engineered optics)
+- **Standard:** `ITU-T G.709 / G.694.1 (transport and DWDM interfaces)`
+- **Engineering Rationale:** The 6920.0 km span exceeds ordinary 10GBASE-LR/ER point-to-point reach. A carrier-managed optical transport system with engineered amplification, dispersion management, protection, and demarcation is required; a single 10GBASE-ER optic is not suitable.
 
 ### Link 2: Chicago-WAN-Edge -> AWS-DX-Gateway
 - **Calculated Distance:** `85000.0 meters`
-- **Recommended Media:** **OS2 Single-Mode Fiber (SMF 9/125µm)**
-- **Transceiver Module:** `SFP-10G-ER (1550nm, up to 40km)` (1550 nm)
-- **Standard Standard:** `IEEE 802.3ae (10GBASE-LR/ER)`
-- **Engineering Rationale:** Link distance of 85000.0m exceeds the 400m dispersion envelope of multimode fiber. OS2 single-mode fiber with a 9µm core eliminates intermodal dispersion entirely, providing an optical attenuation budget <= 0.4 dB/km at 1550nm for metropolitan/WAN spans.
+- **Recommended Media:** **Carrier-managed OS2 long-haul transport (DWDM/OTN; subsea where applicable)**
+- **Transceiver Module:** `Carrier handoff optics; engineered to provider optical budget` (Provider-engineered optics)
+- **Standard:** `ITU-T G.709 / G.694.1 (transport and DWDM interfaces)`
+- **Engineering Rationale:** The 85.0 km span exceeds ordinary 10GBASE-LR/ER point-to-point reach. A carrier-managed optical transport system with engineered amplification, dispersion management, protection, and demarcation is required; a single 10GBASE-ER optic is not suitable.
 
 ### Link 3: Frankfurt-WAN-Edge -> Azure-ER-Gateway
 - **Calculated Distance:** `22000.0 meters`
 - **Recommended Media:** **OS2 Single-Mode Fiber (SMF 9/125µm)**
 - **Transceiver Module:** `SFP-10G-ER (1550nm, up to 40km)` (1550 nm)
-- **Standard Standard:** `IEEE 802.3ae (10GBASE-LR/ER)`
+- **Standard:** `IEEE 802.3ae (10GBASE-LR/ER)`
 - **Engineering Rationale:** Link distance of 22000.0m exceeds the 400m dispersion envelope of multimode fiber. OS2 single-mode fiber with a 9µm core eliminates intermodal dispersion entirely, providing an optical attenuation budget <= 0.4 dB/km at 1550nm for metropolitan/WAN spans.
 
 ### Link 4: Chicago-WAN-Edge -> OnPrem-Server-Row-01
 - **Calculated Distance:** `90.0 meters`
 - **Recommended Media:** **Cat6a U/FTP or F/UTP**
 - **Transceiver Module:** `RJ-45 Native / SFP-10G-T-S` (N/A (Copper))
-- **Standard Standard:** `IEEE 802.3an (10GBASE-T)`
+- **Standard:** `IEEE 802.3an (10GBASE-T)`
 - **Engineering Rationale:** Link distance of 90.0m is within the 100-meter electrical channel limit specified by IEEE 802.3an. 10GBASE-T over Cat6a delivers 10 Gbps throughput at 500 MHz bandwidth with superior power efficiency and eliminates costly optical transceivers for intra-building runs.
 
 ---
 
-## 3. L3 Dynamic Routing & Policy Architecture
+## 4. L3 Dynamic Routing & Policy Architecture
 
 - **Primary Routing Protocol:** Hierarchical Multi-Area OSPFv2 with Border eBGP (RFC 4271)
 - **Backbone Topology Tier:** Distributed Multi-Site / Hybrid Cloud Enterprise WAN

@@ -1,17 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "netarchitect"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.0.0"
+description = "Deterministic enterprise network planning and Cisco IOS baseline generator for CIC-307"
 readme = "README.md"
-authors = [
-    { name = "Anshbharadwaj28", email = "anshaaravbharadwaj@gmail.com" }
-]
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 dependencies = []
+authors = [{ name = "Anshbharadwaj28" }]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
 
 [project.scripts]
-netarchitect = "netarchitect:main"
+netarchitect = "netarchitect.main:main"
 
-[build-system]
-requires = ["uv_build>=0.12.6,<0.13.0"]
-build-backend = "uv_build"
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.setuptools.package-data]
+netarchitect = ["presets/*.json"]

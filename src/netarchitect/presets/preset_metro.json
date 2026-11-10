@@ -1,0 +1,36 @@
+{
+  "project_name": "FinTech Metro MAN Multi-Tenant Backbone",
+  "profile_type": "Metro MAN",
+  "root_cidr": "172.16.0.0/16",
+  "autonomous_system": 65100,
+  "is_multi_site": true,
+  "subnets": [
+    {"name": "Algorithmic_Trading_Colo", "hosts_needed": 180, "vlan_id": 100, "traffic_class": "voice"},
+    {"name": "HQ_Operations", "hosts_needed": 140, "vlan_id": 200, "traffic_class": "standard"},
+    {"name": "Disaster_Recovery_Site", "hosts_needed": 80, "vlan_id": 300, "traffic_class": "standard"},
+    {"name": "Out_Of_Band_Mgmt", "hosts_needed": 50, "vlan_id": 999, "traffic_class": "bulk"}
+  ],
+  "links": [
+    {
+      "source": "FinTech-HQ-Core",
+      "destination": "Secaucus-Colo-DC",
+      "distance_meters": 18500,
+      "required_bandwidth_gbps": 10.0,
+      "medium_override": null
+    },
+    {
+      "source": "FinTech-HQ-Core",
+      "destination": "DR-Backup-Center",
+      "distance_meters": 32000,
+      "required_bandwidth_gbps": 10.0,
+      "medium_override": null
+    },
+    {
+      "source": "Secaucus-Colo-DC",
+      "destination": "Internal-SAN-Gateway",
+      "distance_meters": 75,
+      "required_bandwidth_gbps": 10.0,
+      "medium_override": null
+    }
+  ]
+}

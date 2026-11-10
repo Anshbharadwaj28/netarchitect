@@ -6,7 +6,14 @@
 
 ---
 
-## 1. Bitwise VLSM Subnet Hierarchy
+## 1. Topology Recommendation
+
+- **Recommended topology:** Hierarchical Multi-Site WAN
+- **Rationale:** 2 geographically distinct sites require routed site boundaries and a hierarchical WAN design.
+
+---
+
+## 2. Bitwise VLSM Subnet Hierarchy
 
 Subnets allocated dynamically in strict descending order of host requirements to maximize contiguous block efficiency and prevent overlapping boundary fragmentation.
 
@@ -19,32 +26,32 @@ Subnets allocated dynamically in strict descending order of host requirements to
 
 ---
 
-## 2. Physical Layer Media & Optical Distance Physics
+## 3. Physical Layer Media & Optical Distance Physics
 
 ### Link 1: FinTech-HQ-Core -> Secaucus-Colo-DC
 - **Calculated Distance:** `18500.0 meters`
 - **Recommended Media:** **OS2 Single-Mode Fiber (SMF 9/125µm)**
 - **Transceiver Module:** `SFP-10G-ER (1550nm, up to 40km)` (1550 nm)
-- **Standard Standard:** `IEEE 802.3ae (10GBASE-LR/ER)`
+- **Standard:** `IEEE 802.3ae (10GBASE-LR/ER)`
 - **Engineering Rationale:** Link distance of 18500.0m exceeds the 400m dispersion envelope of multimode fiber. OS2 single-mode fiber with a 9µm core eliminates intermodal dispersion entirely, providing an optical attenuation budget <= 0.4 dB/km at 1550nm for metropolitan/WAN spans.
 
 ### Link 2: FinTech-HQ-Core -> DR-Backup-Center
 - **Calculated Distance:** `32000.0 meters`
 - **Recommended Media:** **OS2 Single-Mode Fiber (SMF 9/125µm)**
 - **Transceiver Module:** `SFP-10G-ER (1550nm, up to 40km)` (1550 nm)
-- **Standard Standard:** `IEEE 802.3ae (10GBASE-LR/ER)`
+- **Standard:** `IEEE 802.3ae (10GBASE-LR/ER)`
 - **Engineering Rationale:** Link distance of 32000.0m exceeds the 400m dispersion envelope of multimode fiber. OS2 single-mode fiber with a 9µm core eliminates intermodal dispersion entirely, providing an optical attenuation budget <= 0.4 dB/km at 1550nm for metropolitan/WAN spans.
 
 ### Link 3: Secaucus-Colo-DC -> Internal-SAN-Gateway
 - **Calculated Distance:** `75.0 meters`
 - **Recommended Media:** **Cat6a U/FTP or F/UTP**
 - **Transceiver Module:** `RJ-45 Native / SFP-10G-T-S` (N/A (Copper))
-- **Standard Standard:** `IEEE 802.3an (10GBASE-T)`
+- **Standard:** `IEEE 802.3an (10GBASE-T)`
 - **Engineering Rationale:** Link distance of 75.0m is within the 100-meter electrical channel limit specified by IEEE 802.3an. 10GBASE-T over Cat6a delivers 10 Gbps throughput at 500 MHz bandwidth with superior power efficiency and eliminates costly optical transceivers for intra-building runs.
 
 ---
 
-## 3. L3 Dynamic Routing & Policy Architecture
+## 4. L3 Dynamic Routing & Policy Architecture
 
 - **Primary Routing Protocol:** Hierarchical Multi-Area OSPFv2 with Border eBGP (RFC 4271)
 - **Backbone Topology Tier:** Distributed Multi-Site / Hybrid Cloud Enterprise WAN

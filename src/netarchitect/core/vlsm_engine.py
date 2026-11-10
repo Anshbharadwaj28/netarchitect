@@ -1,5 +1,9 @@
-import math
+"""IPv4 VLSM allocation using integer arithmetic and strict CIDR validation."""
+from __future__ import annotations
+
+import ipaddress
 from typing import List, Tuple
+
 from .exceptions import SubnetExhaustionError
 from .models import SubnetRequest, SubnetAllocation
 
@@ -7,78 +11,65 @@ from .models import SubnetRequest, SubnetAllocation
 class VLSMEngine:
     @staticmethod
     def _ip_to_int(ip_str: str) -> int:
-        octets = [int(o) for o in ip_str.split(".")]
-        return (octets[0] << 24) | (octets[1] << 16) | (octets[2] << 8) | octets[3]
+        return int(ipaddress.IPv4Address(ip_str))
 
     @staticmethod
     def _int_to_ip(ip_int: int) -> str:
-        return f"{(ip_int >> 24) & 255}.{(ip_int >> 16) & 255}.{(ip_int >> 8) & 255}.{ip_int & 255}"
+        return str(ipaddress.IPv4Address(ip_int))
 
     @classmethod
     def parse_cidr(cls, cidr_str: str) -> Tuple[int, int]:
-        ip_part, prefix_part = cidr_str.strip().split("/")
-        prefix = int(prefix_part)
-        if not (0 <= prefix <= 30):
-            raise ValueError(f"Unsupported root prefix /{prefix}. Must be between /0 and /30.")
-        return cls._ip_to_int(ip_part), prefix
+        try:
+            network = ipaddress.IPv4Network(cidr_str, strict=False)
+        except (ipaddress.AddressValueError, ipaddress.NetmaskValueError, ValueError) as exc:
+            raise ValueError(f"Invalid IPv4 CIDR {cidr_str!r}: {exc}") from exc
+        if network.prefixlen > 30:
+            raise ValueError(f"Unsupported root prefix /{network.prefixlen}. Must be between /0 and /30.")
+        return int(network.network_address), network.prefixlen
 
     @classmethod
     def calculate_vlsm(cls, root_cidr: str, requests: List[SubnetRequest]) -> List[SubnetAllocation]:
         root_ip_int, root_prefix = cls.parse_cidr(root_cidr)
         root_capacity = 1 << (32 - root_prefix)
-        root_netmask_int = ((1 << 32) - 1) ^ ((1 << (32 - root_prefix)) - 1)
-        root_base_network = root_ip_int & root_netmask_int
+        root_end = root_ip_int + root_capacity
 
-        # Sort requested subnets in descending order of needed host capacity
-        sorted_requests = sorted(requests, key=lambda req: req.hosts_needed, reverse=True)
+        seen_names: set[str] = set()
+        seen_vlans: set[int] = set()
+        for req in requests:
+            if not isinstance(req.hosts_needed, int) or isinstance(req.hosts_needed, bool) or req.hosts_needed <= 0:
+                raise ValueError(f"Subnet '{req.name}' requests invalid host count: {req.hosts_needed!r}")
+            if req.hosts_needed > (1 << 30) - 2:
+                raise SubnetExhaustionError(f"Host request for '{req.name}' exceeds the maximum IPv4 subnet capacity.")
+            if not isinstance(req.name, str) or not req.name.strip():
+                raise ValueError(f"Subnet name must be a non-empty string: {req.name!r}.")
+            if not isinstance(req.vlan_id, int) or isinstance(req.vlan_id, bool) or not 1 <= req.vlan_id <= 4094:
+                raise ValueError(f"Subnet '{req.name}' has invalid VLAN ID {req.vlan_id!r}; expected 1..4094.")
+            if req.vlan_id in seen_vlans:
+                raise ValueError(f"Duplicate VLAN ID {req.vlan_id}.")
+            if not req.name or req.name.strip() in seen_names:
+                raise ValueError(f"Subnet names must be non-empty and unique: {req.name!r}.")
+            seen_names.add(req.name.strip())
+            seen_vlans.add(req.vlan_id)
 
-        current_base = root_base_network
         allocations: List[SubnetAllocation] = []
-
-        for req in sorted_requests:
-            if req.hosts_needed <= 0:
-                raise ValueError(f"Subnet '{req.name}' requests invalid host count: {req.hosts_needed}")
-
-            needed_size = req.hosts_needed + 2  # Network ID + Directed Broadcast
-            # Compute power-of-two host bits: 2^(host_bits) >= needed_size
-            host_bits = max(2, math.ceil(math.log2(needed_size)))
-            prefix_len = 32 - host_bits
-            block_size = 1 << host_bits
-
-            # Align current_base to block_size boundary
-            remainder = current_base % block_size
-            if remainder != 0:
-                current_base += (block_size - remainder)
-
-            # Check if this allocation overruns the root CIDR block capacity
-            if (current_base + block_size) > (root_base_network + root_capacity):
+        current = root_ip_int
+        for req in sorted(requests, key=lambda item: item.hosts_needed, reverse=True):
+            block_size = 1 << max(2, (req.hosts_needed + 2 - 1).bit_length())
+            prefix_len = 32 - (block_size.bit_length() - 1)
+            current = ((current + block_size - 1) // block_size) * block_size
+            if current + block_size > root_end:
                 raise SubnetExhaustionError(
-                    f"Subnet exhaustion: Cannot allocate /{prefix_len} ({block_size} IPs) for '{req.name}'. "
-                    f"Exceeds available capacity of root CIDR {root_cidr} ({root_capacity} total IPs)."
+                    f"Subnet exhaustion: cannot allocate /{prefix_len} for '{req.name}' within {root_cidr}."
                 )
-
-            mask_int = ((1 << 32) - 1) ^ (block_size - 1)
-            wildcard_int = block_size - 1
-            network_int = current_base
-            gateway_int = current_base + 1
-            broadcast_int = current_base + block_size - 1
-
-            allocations.append(
-                SubnetAllocation(
-                    name=req.name,
-                    vlan_id=req.vlan_id,
-                    hosts_requested=req.hosts_needed,
-                    hosts_usable=block_size - 2,
-                    prefix_length=prefix_len,
-                    network_address=cls._int_to_ip(network_int),
-                    subnet_mask=cls._int_to_ip(mask_int),
-                    wildcard_mask=cls._int_to_ip(wildcard_int),
-                    default_gateway=cls._int_to_ip(gateway_int),
-                    broadcast_address=cls._int_to_ip(broadcast_int),
-                    traffic_class=req.traffic_class
-                )
-            )
-
-            current_base += block_size
-
+            network = ipaddress.IPv4Network((current, prefix_len))
+            wildcard = (1 << 32) - 1 - int(network.netmask)
+            allocations.append(SubnetAllocation(
+                name=req.name, vlan_id=req.vlan_id, hosts_requested=req.hosts_needed,
+                hosts_usable=network.num_addresses - 2, prefix_length=prefix_len,
+                network_address=str(network.network_address), subnet_mask=str(network.netmask),
+                wildcard_mask=cls._int_to_ip(wildcard),
+                default_gateway=str(network.network_address + 1),
+                broadcast_address=str(network.broadcast_address), traffic_class=req.traffic_class
+            ))
+            current += block_size
         return allocations

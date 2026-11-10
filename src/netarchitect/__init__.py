@@ -1,2 +1,2 @@
-def main() -> None:
-    print("Hello from netarchitect!")
+"""NetArchitect: deterministic enterprise network planning toolkit."""
+__version__ = "1.0.0"

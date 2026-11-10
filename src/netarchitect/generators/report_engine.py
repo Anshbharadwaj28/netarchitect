@@ -13,7 +13,14 @@ class ReportEngine:
             "",
             "---",
             "",
-            "## 1. Bitwise VLSM Subnet Hierarchy",
+            "## 1. Topology Recommendation",
+            "",
+            f"- **Recommended topology:** {plan.topology_recommendation.topology if plan.topology_recommendation else 'Not evaluated'}",
+            f"- **Rationale:** {plan.topology_recommendation.justification if plan.topology_recommendation else 'No topology data supplied'}",
+            "",
+            "---",
+            "",
+            "## 2. Bitwise VLSM Subnet Hierarchy",
             "",
             "Subnets allocated dynamically in strict descending order of host requirements to maximize contiguous block efficiency and prevent overlapping boundary fragmentation.",
             "",
@@ -31,18 +38,18 @@ class ReportEngine:
             "",
             "---",
             "",
-            "## 2. Physical Layer Media & Optical Distance Physics",
+            "## 3. Physical Layer Media & Optical Distance Physics",
             ""
         ])
 
         for idx, m in enumerate(plan.media_recommendations, 1):
-            wl_str = f"{m.wavelength_nm} nm" if m.wavelength_nm else "N/A (Copper)"
+            wl_str = f"{m.wavelength_nm} nm" if m.wavelength_nm else ("N/A (Copper)" if "Cat6" in m.recommended_media else "Provider-engineered optics")
             lines.extend([
                 f"### Link {idx}: {m.source} -> {m.destination}",
                 f"- **Calculated Distance:** `{m.distance_meters:.1f} meters`",
                 f"- **Recommended Media:** **{m.recommended_media}**",
                 f"- **Transceiver Module:** `{m.transceiver_type}` ({wl_str})",
-                f"- **Standard Standard:** `{m.standard}`",
+                f"- **Standard:** `{m.standard}`",
                 f"- **Engineering Rationale:** {m.engineering_justification}",
                 ""
             ])
@@ -50,7 +57,7 @@ class ReportEngine:
         lines.extend([
             "---",
             "",
-            "## 3. L3 Dynamic Routing & Policy Architecture",
+            "## 4. L3 Dynamic Routing & Policy Architecture",
             "",
             f"- **Primary Routing Protocol:** {plan.routing_policy.protocol}",
             f"- **Backbone Topology Tier:** {plan.routing_policy.topology_type}",

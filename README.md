@@ -1,373 +1,573 @@
-# NetArchitect: Autonomous Enterprise Network Engine
+# NetArchitect
 
-**Course Code:** CIC-307 --- Computer Networks\
-**System Role:** Principal Network Architect & Senior Systems Engineer\
-**Language & Frameworks:** Python 3.10+, Pytest, Jinja2\
-**Architecture:** Standard Python `src/` Layout
+**NetArchitect** is a Python command-line application for deterministic enterprise network planning. It accepts one of three built-in network profiles or a custom JSON specification, then calculates IPv4 subnet allocations, recommends physical transmission media, evaluates topology and routing choices, and generates engineering reports and Cisco IOS configuration baselines.
 
-------------------------------------------------------------------------
+> **Course:** CIC-307 – Computer Networks  
+> **Implementation:** Python 3.10+  
+> **Interface:** Command-line application (CLI)  
+> **Output:** Markdown design report and Cisco IOS `.cfg` files
 
-## 1. Executive Summary
+---
 
-**NetArchitect** is a production-grade software engine designed to
-automate enterprise network design, Layer 1--3 physical and logical
-resource allocation, and Cisco IOS configuration generation.
+## Table of contents
 
-By ingesting network parameter specifications via standard JSON
-declarations, NetArchitect applies deterministic algorithmic decision
-engines to:
+- [Project objectives](#project-objectives)
+- [Features](#features)
+- [How the application works](#how-the-application-works)
+- [Technology and requirements](#technology-and-requirements)
+- [Repository structure](#repository-structure)
+- [Installation](#installation)
+- [Running the application](#running-the-application)
+- [Built-in network profiles](#built-in-network-profiles)
+- [Custom network specification](#custom-network-specification)
+- [Generated files](#generated-files)
+- [Core algorithms and design decisions](#core-algorithms-and-design-decisions)
+- [Running the tests](#running-the-tests)
+- [Troubleshooting](#troubleshooting)
+- [Scope, assumptions, and limitations](#scope-assumptions-and-limitations)
+- [References](#references)
 
--   Enforce physical media physics constraints (IEEE 802.3an / IEEE
-    802.3ae).
--   Compute bitwise non-overlapping Variable Length Subnet Masks (VLSM).
--   Select optimal Layer 3 routing topologies and policies (OSPFv2 /
-    eBGP).
--   Synthesize deployment-ready Cisco IOS device configurations and
-    architectural explainability reports.
+## Project objectives
 
-------------------------------------------------------------------------
+Enterprise networks have different addressing, scale, distance, availability, and routing requirements. Designing them manually involves several related tasks: allocating subnets without overlap, choosing suitable physical media, selecting an appropriate topology, documenting routing decisions, and preparing device configurations.
 
-## 2. Directory & Repository Structure
+NetArchitect brings these tasks into one repeatable workflow. Given a network specification, it:
 
-NetArchitect adopts a standard Python `src/` layout to isolate
-installable application packages from test suites and top-level
-execution tools:
+1. Validates the input and rejects invalid or inconsistent values.
+2. Allocates IPv4 subnets using Variable Length Subnet Masking (VLSM).
+3. Recommends physical media based on link distance and any requested media constraint.
+4. Recommends a topology based on endpoint count, site count, and dual-homing requirements.
+5. Recommends a routing policy based on the single-site or multi-site design.
+6. Generates a Markdown engineering report and two Cisco IOS configuration baselines.
 
-``` text
-netarchitect/
-├── .github/
-│   └── workflows/
-│       └── ci.yml               # Automated Pytest CI workflow on push/PR
-├── config/                      # Ingestion preset profiles
-│   ├── preset_campus.json       # Profile 1: Campus LAN (3 bldgs, <400m, 1600 hosts)
-│   ├── preset_metro.json        # Profile 2: Metro MAN (HQ + 2 remote 15-35km, FinTech Colo)
-│   └── preset_wan.json          # Profile 3: Global WAN (4 cities + cloud VPC)
-├── exports/                     # Target directory for generated outputs (.cfg and .md)
-│   └── .gitkeep                 # Git tracking anchor for directory structure
-├── src/
-│   └── netarchitect/
-│       ├── __init__.py          # Package initialization (__version__ = "1.0.0")
-│       ├── cli.py               # CLI entry point (argparse parser driver)
-│       ├── core/                # Core decision engines & dataclass schemas
-│       │   ├── __init__.py
-│       │   ├── exceptions.py    # Custom domain exceptions
-│       │   ├── media_engine.py  # Layer 1/2 Physical Media Physics Engine
-│       │   ├── models.py        # Strongly typed Pydantic/Dataclass domain models
-│       │   ├── routing_engine.py# Layer 3 Dynamic Routing Policy Engine
-│       │   └── vlsm_engine.py   # Bitwise Descending VLSM Allocator Engine
-│       └── generators/          # Configuration & Markdown rendering modules
-│           ├── __init__.py
-│           ├── cisco_ios.py     # Cisco IOS L2 switch & L3 router configuration engine
-│           └── report_engine.py # Markdown architectural explainability log generator
-├── tests/                       # Automated Pytest unit test suite
-│   ├── __init__.py
-│   ├── test_media_routing.py    # Physical distance boundaries & copper violation tests
-│   └── test_vlsm.py             # Bitwise non-overlap, /30 masks, exhaustion checks
-├── .gitignore                   # Version control exclusion rules
-├── ai_audit_log.md              # Academic post-mortem of AI bugs caught and fixed
-├── pyproject.toml               # Modern Python package build specification
-├── README.md                    # Technical reference, setup & workflow guide
-└── requirements.txt             # Dependency declarations (pytest, jinja2)
+The application is deterministic: the same valid input produces the same planning decisions and output content.
+
+## Features
+
+### Network profiles and input handling
+
+- Built-in Campus LAN, Metro MAN, and Global WAN JSON profiles.
+- Custom network designs supplied through a JSON file.
+- Validation of required fields, data types, numeric ranges, IPv4 CIDR notation, VLAN IDs, duplicate subnet names/VLAN IDs, link distances, and bandwidth values.
+- Validation that requested subnet allocations fit inside the supplied root IPv4 network.
+
+### IPv4 addressing and VLSM
+
+- Allocates address blocks in descending order of requested host capacity.
+- Calculates the required subnet prefix and aligns each allocation to its block boundary.
+- Produces network address, subnet mask, wildcard mask, first usable address (used as the default gateway), broadcast address, and usable host count.
+- Detects invalid host requests, duplicate VLAN IDs, invalid CIDR input, and address-space exhaustion.
+
+### Physical media recommendations
+
+The media engine uses the configured link distance and optional media override to recommend a medium and associated standard/transceiver information. The current planning assumptions include:
+
+| Link distance / constraint | Recommendation used by the planner |
+|---|---|
+| Up to 100 m | Cat6a copper, when no fiber-only override is supplied |
+| More than 100 m up to 400 m | OM4 multimode fiber |
+| More than 400 m up to 10 km | OS2 single-mode fiber with 10GBASE-LR assumption |
+| More than 10 km up to 40 km | OS2 single-mode fiber with 10GBASE-ER assumption |
+| More than 40 km | Carrier-managed optical transport recommendation (DWDM/OTN) |
+
+The engine rejects a copper override beyond 100 m and an OM4/MMF override beyond 400 m under the planner's 10GBASE-SR assumption. These are planning guardrails, not a substitute for a complete optical link budget or vendor-specific compatibility check.
+
+### Topology and routing recommendations
+
+- Collapsed-core (two-tier) recommendation for a single site with up to 500 endpoints.
+- Three-tier hierarchical campus recommendation for a larger single-site network.
+- Hierarchical multi-site WAN recommendation when more than one site is specified.
+- Dual-homing is reflected in the topology rationale when requested.
+- Single-area OSPFv2 is recommended for a single-site design with fewer than 50 allocated subnets.
+- Hierarchical multi-area OSPFv2 with an eBGP border recommendation is returned for multi-site designs or designs with 50 or more subnets.
+
+These are design recommendations generated from the supplied metadata. They do not mean that every recommended routing relationship is fully configured or simulated.
+
+### Output generation
+
+Each successful run generates:
+
+1. A Markdown engineering design report.
+2. A Layer 2 access-switch configuration baseline.
+3. A Layer 3 core/distribution multilayer-switch configuration baseline.
+
+## How the application works
+
+```text
+Built-in preset JSON / Custom JSON
+              |
+              v
+       Configuration Loader
+              |
+              v
+        Input Validation
+              |
+       +------+------+
+       |             |
+       v             v
+   VLSM Engine   Physical Media Engine
+       |             |
+       +------+------+
+              |
+              v
+    Topology and Routing Engines
+              |
+              v
+       Network Architecture Plan
+              |
+       +------+----------------+
+       |                       |
+       v                       v
+ Markdown Report       Cisco IOS Generators
+       |                       |
+       +-----------+-----------+
+                   |
+                   v
+              Output Folder
 ```
 
-------------------------------------------------------------------------
+### Main modules
 
-## 3. Algorithmic Decision Engine Specifications
+- `core/params.py`: loads JSON files and validates the configuration before planning begins.
+- `core/models.py`: typed data structures used to represent subnet requests, allocations, links, recommendations, and the final plan.
+- `core/vlsm_engine.py`: calculates IPv4 VLSM allocations using integer arithmetic and Python's IPv4 address/network primitives.
+- `core/media_engine.py`: evaluates physical link distances and media constraints.
+- `core/topology_engine.py`: recommends a topology from endpoint count, site count, and dual-homing metadata.
+- `core/routing_engine.py`: selects a routing-policy recommendation.
+- `generators/report_engine.py`: creates the Markdown engineering report.
+- `generators/cisco_ios.py`: creates the access-switch and core/distribution IOS configuration baselines.
+- `main.py`: command-line parsing, orchestration, and output-file writing.
 
-### 3.1. Physical Media Engine (Layer 1 / Layer 2 Physics)
+## Technology and requirements
 
-  -----------------------------------------------------------------------
-  Link distance           Recommended medium      Technical basis
-  ----------------------- ----------------------- -----------------------
-  `≤ 100 m`               Cat6a U/FTP             IEEE 802.3an 10GBASE-T,
-                                                  500 MHz electrical
-                                                  bandwidth
+- Python 3.10 or newer
+- `pip` for package installation
+- `pytest` for the automated test suite
+- Cisco Packet Tracer or compatible Cisco IOS environment for manual configuration review and simulation
 
-  `101 m – 400 m`         OM4 Multi-Mode Fiber    IEEE 802.3ae
-                                                  10GBASE-SR, 850 nm
-                                                  VCSEL, 4700 MHz·km
-                                                  modal bandwidth
+The application has no third-party runtime dependencies declared in `pyproject.toml`. Pytest is included as a development/test dependency.
 
-  `> 400 m`               OS2 Single-Mode Fiber   IEEE 802.3ae
-                                                  10GBASE-LR/ER,
-                                                  1310/1550 nm laser,
-                                                  optical attenuation ≤
-                                                  0.4 dB/km
-  -----------------------------------------------------------------------
+## Repository structure
 
-**Violation guardrail:** If a user forces copper media for a link
-exceeding `100 m`, the engine immediately raises a
-`PhysicalDistanceViolationError`.
+```text
+netarchitect/
+├── config/                         # Repository copies of the three JSON presets
+│   ├── preset_campus.json
+│   ├── preset_metro.json
+│   └── preset_wan.json
+├── exports/                        # Example generated reports and IOS configurations
+├── src/
+│   └── netarchitect/
+│       ├── core/
+│       │   ├── exceptions.py       # Domain-specific exceptions
+│       │   ├── media_engine.py     # Physical media recommendation logic
+│       │   ├── models.py           # Request and result data models
+│       │   ├── params.py           # JSON loading and input validation
+│       │   ├── routing_engine.py   # Routing policy recommendation logic
+│       │   ├── topology_engine.py  # Topology recommendation logic
+│       │   └── vlsm_engine.py      # IPv4 VLSM allocation
+│       ├── generators/
+│       │   ├── cisco_ios.py        # Cisco IOS configuration generation
+│       │   └── report_engine.py    # Markdown report generation
+│       ├── presets/                # Presets bundled with the Python package
+│       ├── __init__.py
+│       └── main.py                 # CLI entry point and orchestration
+├── tests/                          # Automated unit and integration tests
+├── .gitignore
+├── .python-version
+├── ai_audit_log.md                 # AI-assisted development record
+├── pyproject.toml                  # Package metadata and CLI entry point
+├── README.md
+└── requirements.txt                # Test dependency list
+```
 
-### 3.2. VLSM Subnetting Engine (Bitwise Integer Math)
+`config/` and `src/netarchitect/presets/` contain copies of the built-in preset files. The application first checks the repository-level `config/` directory and falls back to the packaged presets, allowing the profiles to remain available when the package is installed.
 
--   **Input:** Base Root CIDR (e.g. `10.0.0.0/16`) and required host
-    counts per VLAN.
--   **Sorting:** Enforces strict descending ordering by host demand
-    prior to memory alignment to prevent address-space fragmentation.
--   **Power-of-two math:** Calculates host bit allocations dynamically:
+## Installation
 
-\[ `\text{host\_bits}`{=tex} =
-`\max`{=tex}`\left`{=tex}(2,`\left`{=tex}`\lceil`{=tex}`\log`{=tex}\_2(`\text{hosts\_needed}`{=tex}+2)`\right`{=tex}`\rceil`{=tex}`\right`{=tex})
-\]
+### 1. Clone the repository
 
-**Calculated parameters:**
-
--   Network ID
--   Subnet Mask
--   Cisco Inverted Wildcard Mask
--   Default Gateway (`+1`)
--   Directed Broadcast Address
-
-**Exhaustion guardrail:** Raises a `SubnetExhaustionError` if total
-requested address blocks exceed the capacity of the root CIDR block.
-
-### 3.3. Layer 3 Dynamic Routing Policy Engine
-
--   **Single campus / fewer than 50 subnets:** Provisions Single-Area
-    OSPFv2 (Area 0) for flat microsecond Dijkstra SPF convergence
-    without ABR overhead (RFC 2328).
--   **Multi-site / cloud border:** Provisions Hierarchical Multi-Area
-    OSPFv2 with ABR route summarization, coupled with eBGP peering for
-    external WAN/cloud interconnect boundaries (RFC 4271).
-
-------------------------------------------------------------------------
-
-## 4. Complete Setup & Installation Guide
-
-### Prerequisites
-
--   Python 3.10, 3.11, 3.12, or 3.13
--   Git version control system
-
-### Step 1: Clone the repository
-
-``` bash
-git clone https://github.com/your-username/netarchitect.git
+```bash
+git clone https://github.com/Anshbharadwaj28/netarchitect.git
 cd netarchitect
 ```
 
-Replace `your-username` with the actual GitHub account or organization
-that owns the repository.
+### 2. Create a virtual environment
 
-### Step 2: Configure a virtual environment
-
-**Linux / macOS:**
-
-``` bash
-python3 -m venv .venv
-source .venv/bin/activate
+```bash
+python -m venv .venv
 ```
 
-**Windows (Git Bash):**
+Activate it using the command for your terminal:
 
-``` bash
-python -m venv .venv
-source .venv/Scripts/activate
-```
+**Windows PowerShell**
 
-**Windows (PowerShell):**
-
-``` powershell
-python -m venv .venv
+```powershell
 .venv\Scripts\Activate.ps1
 ```
 
-### Step 3: Install dependencies and the editable package
+**Windows Command Prompt**
 
-``` bash
-pip install --upgrade pip
-pip install -r requirements.txt
-pip install -e .
+```cmd
+.venv\Scripts\activate.bat
 ```
 
-------------------------------------------------------------------------
+**Linux / macOS / Git Bash**
 
-## 5. End-to-End System Workflow & Execution Guide
-
-Execute the engine using Python's module invocation syntax:
-
-``` bash
-python -m netarchitect.cli
+```bash
+source .venv/bin/activate
 ```
 
-### Execution workflow
+### 3. Install the project
 
-``` text
-[ Preset JSON / Custom JSON Input ]
-                 |
-                 v
-       +------------------+
-       |    CLI Driver    |
-       +--------+---------+
-                |
-                +----> 1. Ingest link and subnet requests
-                |
-                +----> 2. Execute VLSMEngine (bitwise VLSM calculation)
-                |
-                +----> 3. Execute MediaEngine (L1/L2 media physics evaluation)
-                |
-                +----> 4. Execute RoutingEngine (L3 routing policy evaluation)
-                |
-                v
-       +------------------+
-       | Generators Module|
-       +--------+---------+
-                |
-                +----> CiscoIOSGenerator (.cfg syntax rendering)
-                |
-                +----> ReportEngine (.md architectural log rendering)
-                |
-                v
-       [ Outputs saved to exports/ ]
+Upgrade pip and install the project in editable mode with its development dependency:
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
 ```
 
-### Running built-in presets
+Editable installation makes the `netarchitect` command available in the active virtual environment while using the source code in the working directory.
 
-#### Preset 1: Campus LAN Profile
+## Running the application
 
-Ingests 3 campus buildings (links under 400 m, 1600 total hosts across 5
-VLANs):
+### Display command-line help
 
-``` bash
-python -m netarchitect.cli --preset campus --output-dir exports
+```bash
+netarchitect --help
 ```
 
-#### Preset 2: Metro MAN Profile
+The CLI accepts exactly one input source: a built-in preset or a custom JSON file. `--output-dir` is optional and defaults to `exports`.
 
-Ingests HQ to 2 remote data centers (15--35 km OS2 links, FinTech
-colocation):
+### Run the Campus LAN profile
 
-``` bash
-python -m netarchitect.cli --preset metro --output-dir exports
+```bash
+netarchitect --preset campus
 ```
 
-#### Preset 3: Global WAN & Multi-Cloud Profile
+### Run the Metro MAN profile
 
-Ingests 4 international edge nodes, 2000 IoT devices, and hybrid cloud
-VPC interconnects:
-
-``` bash
-python -m netarchitect.cli --preset wan --output-dir exports
+```bash
+netarchitect --preset metro
 ```
 
-### Running custom input configurations
+### Run the Global WAN profile
 
-To run custom parameter specifications, pass the path to your custom
-JSON file:
-
-``` bash
-python -m netarchitect.cli --input config/preset_campus.json --output-dir exports
+```bash
+netarchitect --preset wan
 ```
 
-------------------------------------------------------------------------
+### Choose a different output directory
 
-## 6. Generated Export Artifacts
+```bash
+netarchitect --preset campus --output-dir exports/campus-run
+```
 
-Upon running `netarchitect.cli`, three primary production artifacts are
-written directly into the `exports/` folder:
+### Run without installing the console command
 
-  -----------------------------------------------------------------------
-  Artifact                            Description
-  ----------------------------------- -----------------------------------
-  `<profile>_design_report.md`        Complete Markdown design
-                                      documentation detailing bitwise
-                                      VLSM tables, Layer 1 transceiver
-                                      selections, optical physics
-                                      rationales, and routing policy
-                                      justifications.
+From the repository root, after dependencies are available:
 
-  `<profile>_sw_access.cfg`           Copy-paste Cisco IOS configuration
-                                      for Layer 2 access switches (VLAN
-                                      database, 802.1Q trunking,
-                                      Rapid-PVST, Root Guard, BPDU
-                                      Guard).
+```bash
+python -m netarchitect.main --preset campus
+```
 
-  `<profile>_core_router.cfg`         Copy-paste Cisco IOS configuration
-                                      for Layer 3 core routers (SVIs,
-                                      `ip routing`, dynamic OSPF network
-                                      statements with inverse wildcard
-                                      masks, eBGP neighbor peering,
-                                      DiffServ QoS
-                                      class-maps/policy-maps).
-  -----------------------------------------------------------------------
+### Run a custom design
 
-------------------------------------------------------------------------
+```bash
+netarchitect --input config/my_network.json --output-dir exports/custom
+```
 
-## 7. Comprehensive Testing Guide & Verification
+A successful run prints a short summary containing the profile, subnet/link counts, topology recommendation, and paths of the generated files. A handled input, planning, or file error is printed to standard error and returns exit code `2`; a successful run returns `0`.
 
-NetArchitect includes a Pytest test suite covering bitwise math,
-non-overlapping subnet allocations, distance boundaries, exception
-handling, and routing protocol selection.
+## Built-in network profiles
 
-### Running Pytest
+The repository includes three example inputs. They are illustrative design scenarios and can be edited or used as starting points for custom designs.
 
-``` bash
+| Preset | Scenario | Root IPv4 block | AS number | Multi-site flag |
+|---|---|---|---:|---|
+| `campus` | Campus LAN with student, faculty, IoT, voice, and CCTV VLANs | `10.100.0.0/16` | 65001 | `false` |
+| `metro` | Metro MAN connecting HQ, colocation, and disaster-recovery networks | `172.16.0.0/16` | 65100 | `true` |
+| `wan` | Global WAN and multi-cloud connectivity scenario | `10.0.0.0/14` | 64512 | `true` |
+
+Run each profile with the commands in [Running the application](#running-the-application). Generated sample outputs are stored in `exports/` in the repository.
+
+## Custom network specification
+
+A custom input is a UTF-8 JSON object. The following fields are required:
+
+- `root_cidr`: IPv4 network block from which the VLSM allocator assigns subnets.
+- `subnets`: non-empty array of subnet requests.
+- `links`: non-empty array of physical links to evaluate.
+
+The remaining top-level fields are optional and have defaults described below.
+
+### Example JSON
+
+Save the following as `config/my_network.json`:
+
+```json
+{
+  "project_name": "Example University Campus",
+  "profile_type": "Custom Campus",
+  "root_cidr": "10.20.0.0/16",
+  "autonomous_system": 65010,
+  "is_multi_site": false,
+  "endpoints": 250,
+  "site_count": 1,
+  "dual_homed": true,
+  "subnets": [
+    {
+      "name": "Students",
+      "hosts_needed": 180,
+      "vlan_id": 10,
+      "traffic_class": "bulk"
+    },
+    {
+      "name": "Faculty",
+      "hosts_needed": 50,
+      "vlan_id": 20,
+      "traffic_class": "standard"
+    },
+    {
+      "name": "Voice",
+      "hosts_needed": 25,
+      "vlan_id": 30,
+      "traffic_class": "voice"
+    }
+  ],
+  "links": [
+    {
+      "source": "Core-Switch",
+      "destination": "Access-Switch-01",
+      "distance_meters": 85,
+      "required_bandwidth_gbps": 10,
+      "medium_override": null
+    },
+    {
+      "source": "Core-Switch",
+      "destination": "Building-B-Distribution",
+      "distance_meters": 250,
+      "required_bandwidth_gbps": 10,
+      "medium_override": "OM4"
+    }
+  ]
+}
+```
+
+Run it with:
+
+```bash
+netarchitect --input config/my_network.json --output-dir exports/my-network
+```
+
+### Field reference
+
+#### Top-level fields
+
+| Field | Required | Type | Description / validation |
+|---|---|---|---|
+| `project_name` | No | String | Display name used in generated outputs. Must not be empty when supplied. |
+| `profile_type` | No | String | Profile label used in output filenames and reports. Must not be empty when supplied. |
+| `root_cidr` | Yes | String | Valid IPv4 CIDR. The allocator supports root prefixes from `/0` through `/30`. |
+| `autonomous_system` | No | Integer | AS number from `1` through `4294967295`; defaults to `65000`. |
+| `is_multi_site` | No | Boolean | Whether the design spans multiple sites; defaults to `false`. |
+| `endpoints` | No | Positive integer | Endpoint count used by the topology engine. Defaults to the sum of requested subnet host counts. |
+| `site_count` | No | Positive integer | Number of sites used by the topology engine. Defaults to `2` when `is_multi_site` is true, otherwise `1`. |
+| `dual_homed` | No | Boolean | Whether redundant dual-homed uplinks are required; defaults to `false`. |
+| `subnets` | Yes | Array | Non-empty list of subnet request objects. |
+| `links` | Yes | Array | Non-empty list of physical link objects. |
+
+#### Subnet object
+
+| Field | Required | Type | Description / validation |
+|---|---|---|---|
+| `name` | Yes | String | Non-empty and unique subnet name. |
+| `hosts_needed` | Yes | Integer | Positive requested host count. |
+| `vlan_id` | Yes | Integer | Unique VLAN ID from `1` through `4094`. |
+| `traffic_class` | No | String | Descriptive traffic category; defaults to `standard`. Example values in the presets are `voice`, `video`, `standard`, and `bulk`. |
+
+#### Link object
+
+| Field | Required | Type | Description / validation |
+|---|---|---|---|
+| `source` | Yes | String | Non-empty source device/site name. |
+| `destination` | Yes | String | Non-empty destination device/site name. |
+| `distance_meters` | Yes | Number | Finite, non-negative physical distance in metres. |
+| `required_bandwidth_gbps` | No | Number | Positive finite bandwidth in Gbps; defaults to `10.0`. |
+| `medium_override` | No | String or `null` | Optional media constraint. Supported values are `CAT6`, `CAT6A`, `COPPER`, `10GBASE-T`, `OM4`, `MMF`, `OS2`, and `SMF` (case-insensitive). |
+
+### Input validation rules
+
+The configuration loader checks that:
+
+- The JSON root is an object and contains `root_cidr`, `subnets`, and `links`.
+- The root address is valid IPv4 CIDR and is within the supported prefix range.
+- At least one subnet and one link are supplied.
+- Every subnet has a non-empty name, positive integer host demand, and valid VLAN ID.
+- Subnet names and VLAN IDs are unique.
+- The requested VLSM blocks fit inside the root CIDR without overlap.
+- Link endpoints are non-empty strings; distances are finite and non-negative.
+- Link bandwidth values are positive and finite.
+- Optional AS number, endpoint count, site count, booleans, and project labels have valid types and ranges.
+
+Invalid input stops the run with an explanatory error instead of generating a partial design.
+
+## Generated files
+
+For a profile named `Campus LAN`, the application creates these files in the selected output directory (the profile label is converted to lowercase and spaces are replaced with underscores):
+
+```text
+exports/
+├── campus_lan_design_report.md
+├── campus_lan_sw_access.cfg
+└── campus_lan_core_router.cfg
+```
+
+The exact filenames for other profiles follow the same pattern, for example `metro_man_design_report.md` and `global_wan_core_router.cfg`.
+
+### 1. Markdown design report
+
+The report includes:
+
+- Project and profile metadata.
+- Recommended topology and its rationale.
+- VLSM allocation table, including VLAN, host demand, usable hosts, prefix, network, subnet mask, wildcard mask, gateway, and broadcast address.
+- Physical link distance, recommended medium, transceiver, standard, and engineering rationale.
+- Routing protocol recommendation, topology tier, area information, border protocol, and rationale.
+
+### 2. Access-switch configuration (`*_sw_access.cfg`)
+
+The generated Layer 2 baseline includes:
+
+- Hostname `SW-ACCESS-01`.
+- VLAN declarations based on the subnet allocations.
+- A sample 802.1Q trunk uplink on `GigabitEthernet0/1`.
+- Up to three sample access interfaces mapped to the first allocated VLANs.
+- Rapid-PVST and default PortFast/BPDU Guard settings.
+
+### 3. Core/distribution configuration (`*_core_router.cfg`)
+
+Despite the historical `core_router` output filename, the generated device configuration is for a **Layer 3 multilayer switch**, with hostname `CORE-SW1`. It includes:
+
+- IP routing and Rapid-PVST.
+- VLAN switched virtual interfaces (SVIs) using the calculated gateway addresses.
+- OSPF process and network statements for the allocated subnets.
+- Example QoS class maps and policy map for voice/video traffic classes.
+- A comment describing the eBGP recommendation when the plan is multi-site, without inventing incomplete BGP peer statements.
+
+## Core algorithms and design decisions
+
+### VLSM allocation
+
+The allocator sorts subnet requests by descending host demand so that larger address blocks are assigned first. For each subnet it determines the smallest power-of-two address block that can contain the requested hosts plus the network and broadcast addresses, aligns the next available address to that block boundary, and checks that the block remains within the root network.
+
+For a conventional IPv4 subnet with prefix length `p`, the total address count is:
+
+```text
+2^(32 - p)
+```
+
+For ordinary subnet sizes, the usable host count is:
+
+```text
+2^(32 - p) - 2
+```
+
+The implementation uses integer arithmetic for address alignment and Python's `ipaddress` module for IPv4 network representation. The first usable address is selected as the default gateway in generated plans.
+
+### Physical media selection
+
+Media recommendations are based on distance bands and optional override constraints. The engine explicitly guards against copper links beyond 100 m and OM4 links beyond the assumed 400 m 10GBASE-SR reach. For spans beyond 40 km, the planner recommends provider-managed optical transport rather than treating a single 10GBASE-ER optic as sufficient.
+
+### Topology selection
+
+The topology engine uses endpoint count, site count, and the dual-homing flag. The thresholds are deterministic rules encoded in `topology_engine.py`; they are recommendations and do not calculate detailed port counts, oversubscription ratios, failure domains, or physical device quantities.
+
+### Routing selection
+
+The routing engine recommends single-area OSPFv2 for a smaller single-site design and hierarchical OSPFv2 with an eBGP border for multi-site or larger designs. The recommendation is included in the report and informs the generated core baseline. The current configuration generator does not create complete multi-site routing adjacencies.
+
+## Running the tests
+
+Install the development dependency (included by `python -m pip install -e ".[dev]"`) and run:
+
+```bash
 python -m pytest -v
 ```
 
-### Test suite breakdown
+For a concise summary:
 
-  ---------------------------------------------------------------------------------------------------------------------
-  Test case name                                             Target module           What it tests / verifies
-  ---------------------------------------------------------- ----------------------- ----------------------------------
-  `test_vlsm_descending_allocation_and_boundary_alignment`   `vlsm_engine.py`        Verifies host-based descending
-                                                                                     sort and power-of-two address
-                                                                                     block alignment.
+```bash
+python -m pytest -q
+```
 
-  `test_vlsm_non_overlapping_bitmasks`                       `vlsm_engine.py`        Verifies zero address overlap
-                                                                                     between adjacent network blocks.
+The test suite covers VLSM allocation and validation, media-selection boundaries, routing-policy selection, topology recommendations, invalid configuration handling, preset loading, and CLI output generation.
 
-  `test_vlsm_wildcard_mask_accuracy`                         `vlsm_engine.py`        Validates `/30` point-to-point
-                                                                                     subnets, inverted Cisco wildcard
-                                                                                     masks, default gateways, and
-                                                                                     broadcast addresses.
+## Troubleshooting
 
-  `test_vlsm_subnet_exhaustion_raises_exception`             `vlsm_engine.py`        Confirms `SubnetExhaustionError`
-                                                                                     is raised when allocations
-                                                                                     overflow base CIDR boundaries.
+### `netarchitect` is not recognized
 
-  `test_media_selection_boundaries`                          `media_engine.py`       Validates media selections across
-                                                                                     Cat6a (≤ 100 m), OM4 (101--400 m),
-                                                                                     and OS2 (\> 400 m) spans.
+Activate the virtual environment and install the package:
 
-  `test_copper_distance_violation_error`                     `media_engine.py`       Confirms
-                                                                                     `PhysicalDistanceViolationError`
-                                                                                     is raised when copper is forced
-                                                                                     beyond 100 m.
+```bash
+python -m pip install -e ".[dev]"
+```
 
-  `test_routing_engine_policy_selection`                     `routing_engine.py`     Validates OSPF Single-Area
-                                                                                     vs. Multi-Area OSPF + eBGP policy
-                                                                                     selection rules.
-  ---------------------------------------------------------------------------------------------------------------------
+Alternatively, run the module from the repository root:
 
-------------------------------------------------------------------------
+```bash
+python -m netarchitect.main --preset campus
+```
 
-## 8. Critical System Principles & Important Points
+### PowerShell blocks virtual-environment activation
 
-### Strict bitwise math engine
+If local policy prevents activation, use the Python executable inside the environment directly:
 
-VLSM calculation strictly avoids external abstraction libraries such as
-Python's `ipaddress`, performing pure 32-bit integer bit shifts (`<<`,
-`>>`), bitwise XOR (`^`), and bitwise AND (`&`) to guarantee zero
-overlap and correct wildcard-mask inversion.
+```powershell
+.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.venv\Scripts\python.exe -m pytest -q
+.venv\Scripts\netarchitect.exe --preset campus
+```
 
-### 100 m electrical channel limit enforcement
+### Address-space exhaustion
 
-Hard physical guardrails prevent invalid network deployments
-(e.g. forcing Cat6a over 100 m) by throwing explicit domain exceptions.
+Increase the root CIDR capacity or reduce the requested host counts. The allocator will not silently place a subnet outside the specified root network.
 
-### Hardened Cisco security defaults
+### Invalid media override
 
-Generated switch and router configurations explicitly include security
-features such as:
+Use one of the supported values: `CAT6`, `CAT6A`, `COPPER`, `10GBASE-T`, `OM4`, `MMF`, `OS2`, or `SMF`. Also check that the requested distance is within the planner's limit for the selected medium.
 
--   `spanning-tree portfast bpduguard default`
--   `spanning-tree guard root`
--   `switchport nonegotiate`
+### Generated configuration does not match a Packet Tracer device
 
-### Academic post-mortem transparency
+Interface names and supported IOS commands vary by device model and Packet Tracer version. Select the target device first, then adapt and verify interface identifiers and platform-specific commands. A generated configuration file is a baseline, not a guarantee that every command is supported by every simulated device.
 
-The included `ai_audit_log.md` documents two realistic AI networking
-failure modes (wildcard-mask bitshift errors and missing trunk/root
-guard protections) and their mathematical or architectural fixes.
+## Scope, assumptions, and limitations
+
+NetArchitect is an educational network-planning and configuration-baseline tool. It is not a network emulator, an automatic Packet Tracer project generator, or a production deployment system.
+
+- **Routing is recommended, not fully deployed.** Multi-area OSPF and eBGP are policy recommendations. The current input schema does not provide WAN router interfaces, peer addresses, remote AS values, authentication settings, or advertised prefixes, so complete site-to-site BGP configurations are not generated.
+- **Generated device roles are limited.** The application generates one sample Layer 2 access-switch configuration and one Layer 3 core/distribution multilayer-switch configuration per run. It does not generate a complete per-site device inventory or every router/switch configuration for a real enterprise network.
+- **Access ports are illustrative.** Up to three sample access ports are generated, not a complete port plan for every endpoint.
+- **QoS is a baseline example.** The class maps and policy map are illustrative and are not automatically attached to a WAN interface. Production QoS requires traffic requirements and platform-specific validation.
+- **Security policy is not inferred.** ACLs, firewall rules, VPN policies, and segmentation rules are not invented from generic address ranges. They require explicit security requirements.
+- **Media recommendations are simplified.** Actual deployment requires checking optic type, fiber plant, connector, attenuation, splice/patch loss, optical budget, speed, vendor interoperability, and applicable standards for the selected hardware.
+- **No Packet Tracer verification is implied.** The generated `.cfg` files must be loaded into the chosen Packet Tracer devices and tested. Simulation screenshots or `.pkt` files should only be included in a submission after that verification has actually been performed.
+- **No production readiness is claimed.** Review and adapt every generated command for the exact device model, IOS release, interface naming, and network requirements before use.
+
+## References
+
+The project logic and its engineering assumptions are informed by standard networking concepts and specifications, including:
+
+- RFC 2328 – OSPF Version 2.
+- RFC 4271 – A Border Gateway Protocol 4 (BGP-4).
+- IEEE 802.3 Ethernet specifications, including 10GBASE-T, 10GBASE-SR, 10GBASE-LR, and 10GBASE-ER physical-layer families.
+- ITU-T G.694.1 – Spectral grids for WDM applications: DWDM frequency grid.
+- ITU-T G.709 – Interfaces for the Optical Transport Network (OTN).
+- Python `ipaddress` documentation for IPv4 address and network handling.
+
+These references provide background for the design concepts. Exact device compatibility and standards compliance must be checked against the hardware and implementation selected for a real deployment.
+
+---
+
+**NetArchitect – CIC-307 Computer Networks Project**  
+*Deterministic network planning, IPv4 addressing, media recommendations, routing/topology decisions, and Cisco IOS baseline generation.*

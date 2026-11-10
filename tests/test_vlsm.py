@@ -59,3 +59,17 @@ class TestVLSMEngine(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_invalid_ipv4_cidr_is_rejected(self):
+        with self.assertRaises(ValueError):
+            VLSMEngine.calculate_vlsm("10.999.0.0/24", [SubnetRequest("A", 10, 10)])
+
+    def test_duplicate_vlan_is_rejected(self):
+        with self.assertRaises(ValueError):
+            VLSMEngine.calculate_vlsm("10.0.0.0/24", [
+                SubnetRequest("A", 10, 10), SubnetRequest("B", 10, 10)
+            ])
+
+    def test_noncanonical_root_is_normalized_without_escape(self):
+        result = VLSMEngine.calculate_vlsm("10.0.0.17/24", [SubnetRequest("A", 20, 10)])
+        self.assertEqual(result[0].network_address, "10.0.0.0")
