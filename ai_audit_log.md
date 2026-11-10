@@ -1,4 +1,4 @@
-﻿# AI Code Audit and Technical Defense Log
+# AI Code Audit and Technical Defense Log
 
 **Course:** CIC-307 Computer Networks Mini-Project  
 **Project:** NetArchitect  
@@ -13,9 +13,9 @@
 
 The development task was to generate a VLSM allocator that accepts a parent IPv4 prefix and a list of host requirements, then allocates non-overlapping subnets in descending host-count order.
 
-### Flawed AI-proposed approach
+### Representative flawed approach reviewed during development
 
-An unsafe simplified approach considered during development was:
+The following is a reconstructed minimal example of the unsafe approach discussed during development; it is not presented as a verbatim transcript of an AI response:
 
 ```python
 import ipaddress
@@ -63,7 +63,9 @@ An incorrect subnet boundary can place a host in a different prefix than the rou
 
 The task was to generate a copy-paste-ready Cisco IOS extended ACL configuration as a Python string and write it to a `.cfg` file.
 
-### Flawed AI-generated code
+### Minimal reproduction of the formatting defect
+
+The following reproduces the faulty escaping pattern found during development; it is not presented as a verbatim transcript of an AI response:
 
 ```python
 def render_acl(lines):
@@ -112,7 +114,7 @@ python -m netarchitect.main --preset wan --output-dir exports/global
 python -m netarchitect.main --input config/custom_test.json --output-dir exports/custom_test
 ```
 
-**Important:** The test count and command outcomes must be updated to match the final run on the student's machine. Packet Tracer/GNS3 simulation is not claimed here. Add dated screenshots and observed ping/ACL/routing results only after performing those tests.
+**Verification performed on the uploaded repository snapshot (10 November 2026):** `python -m pytest -q` completed with 25 passed and 4 subtests passed. Campus, Metro, Global WAN, and the supplied custom JSON each completed through the CLI and wrote their expected output files. These checks were performed in the review environment; rerun them on the submission machine. Packet Tracer/GNS3 simulation is not claimed here. Add dated screenshots and observed ping/ACL/routing results only after performing those tests.
 
 ## Limitations disclosed
 

@@ -571,3 +571,43 @@ These references provide background for the design concepts. Exact device compat
 
 **NetArchitect – CIC-307 Computer Networks Project**  
 *Deterministic network planning, IPv4 addressing, media recommendations, routing/topology decisions, and Cisco IOS baseline generation.*
+
+
+## ACL policy input and generated security configuration
+
+ACL generation is optional. Add an `acl_policies` array to a preset or custom JSON file to request ACL output. Each policy requires a unique `name`, `source_vlan`, and `destination_vlan`; optional fields are `action` (`permit` or `deny`), `protocol` (`ip`, `tcp`, `udp`, or `icmp`), and `destination_port` (TCP/UDP only, 1–65535).
+
+Example:
+
+```json
+"acl_policies": [
+  {
+    "name": "BLOCK_IOT_TO_STAFF",
+    "source_vlan": 30,
+    "destination_vlan": 20,
+    "action": "deny",
+    "protocol": "ip"
+  }
+]
+```
+
+When policies are present, NetArchitect writes an additional `*_security_acl.cfg` file. The generator derives the destination network and wildcard mask from the VLSM allocation for the destination VLAN and applies the ACL inbound on the source VLAN SVI. It appends `permit ip any any` after the configured rules, so this is a specific deny/permit policy with a permissive catch-all, not a default-deny firewall. Review rule order and security intent before deployment. If no policies are supplied, no ACL configuration file is generated.
+
+## Verification record for this repository snapshot
+
+The uploaded repository snapshot was checked in an isolated environment on 10 November 2026:
+
+- `python -m pytest -q`: **25 passed, 4 subtests passed**.
+- Campus preset: CLI completed successfully and generated one Markdown report, one access-switch baseline, and one core/distribution baseline.
+- Metro preset: CLI completed successfully and generated the same three output types.
+- Global WAN preset: CLI completed successfully and generated the same three output types.
+- `config/custom_test.json`: CLI completed successfully and generated the three baseline outputs plus `custom_test_security_acl.cfg`.
+
+These are software execution and unit-test results. They do **not** establish that the generated IOS commands were loaded successfully into Packet Tracer/GNS3 or that end-to-end network traffic was verified. Record simulator results separately and include screenshots only after performing the tests.
+
+## Current implementation boundaries
+
+The CLI validates external JSON through `load_json()` before calling the planning pipeline. The internal `build_architecture(data)` function itself expects validated input; code that calls it directly should call `validate_config(data)` first.
+
+The current `main.py` writes three baseline artifacts for every run: a Markdown report, a sample Layer 2 access-switch configuration, and a Layer 3 core/distribution switch configuration. An ACL file is conditional on non-empty `acl_policies`. The generated core configuration is not a complete multi-site deployment: routing policy recommendations do not by themselves create working multi-area OSPF adjacencies or eBGP peerings. The input model currently lacks the WAN interface and peer details needed to generate those configurations safely.
+

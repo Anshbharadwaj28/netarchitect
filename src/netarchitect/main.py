@@ -77,7 +77,7 @@ def main(argv: list[str] | None = None) -> int:
             outputs[output_dir / f"{slug}_security_acl.cfg"] = generate_acl_config(plan.allocations, acl_policies)
         acl_policies = raw_config.get("acl_policies", [])
         if acl_policies:
-            outputs[output_dir / f"{slug}_security_acl.cfg"] = generate_acl_config(plan.allocations, acl_policies)
+                    outputs[output_dir / f"{slug}_security_acl.cfg"] = generate_acl_config(plan.allocations, acl_policies)
         for path, content in outputs.items():
             path.write_text(content, encoding="utf-8")
         print(f"NetArchitect completed: {plan.profile_type}")
