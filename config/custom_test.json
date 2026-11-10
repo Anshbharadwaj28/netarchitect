@@ -55,6 +55,16 @@
       "required_bandwidth_gbps": 10,
       "medium_override": null
     }
-  ]
+  ],
+  
+  "acl_policies": [
+  {
+    "name": "BLOCK_IOT_TO_STAFF",
+    "source_vlan": 30,
+    "destination_vlan": 20,
+    "action": "deny",
+    "protocol": "ip"
+  }
+]
 }
 
