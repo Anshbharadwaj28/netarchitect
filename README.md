@@ -2,7 +2,6 @@
 
 **NetArchitect** is a Python command-line application for deterministic enterprise network planning. It accepts one of three built-in network profiles or a custom JSON specification, then calculates IPv4 subnet allocations, recommends physical transmission media, evaluates topology and routing choices, and generates engineering reports and Cisco IOS configuration baselines.
 
-> **Course:** CIC-307 – Computer Networks  
 > **Implementation:** Python 3.10+  
 > **Interface:** Command-line application (CLI)  
 > **Output:** Markdown design report and Cisco IOS `.cfg` files
